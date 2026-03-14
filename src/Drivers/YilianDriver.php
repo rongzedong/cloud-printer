@@ -43,6 +43,39 @@ class YilianDriver extends BaseDriver
     }
 
     /**
+     * 格式化打印内容（标签兼容性处理）
+     * 针对易联云指令集进行优化转换
+     * @param string $content 原始打印内容
+     * @return string 处理后的打印内容
+     */
+    protected function formatContent(string $content): string
+    {
+        // 1. 二维码兼容：无论输入 <QR> 或 <QRCODE>，统一转换为易联云推荐的 <QR2> (size=6)
+        $content = preg_replace('/<(QR|QRCODE|QR2)[^>]*>(.*)<\/\1>/iU', '<QR2>6,$2</QR2>', $content);
+
+        // 2. 条形码兼容：根据 type 属性转换为易联云专有的 BR5(B) 或 BR6(C) 指令
+        // 格式：<BRx>显示文字,高度,内容</BRx>
+        $content = preg_replace('/<BARCODE type="B">(.*)<\/BARCODE>/iU', '<BR5>1,100,$1</BR5>', $content);
+        $content = preg_replace('/<BARCODE type="C">(.*)<\/BARCODE>/iU', '<BR6>1,100,$1</BR6>', $content);
+
+        // 3. 基础排版标签映射
+        $map = [
+            '<C>'     => '<center>', 
+            '</C>'    => '</center>',
+            '<R>'     => '<right>', 
+            '</R>'    => '</right>',
+            '<CB>'    => '<FS2>',      // 居中放大使用 FS2 中文字体 32*32
+            '</CB>'   => '</FS2>',
+            '<BOLD>'  => '<FB>', 
+            '</BOLD>' => '</FB>',
+            '<CUT>'   => '<MK2>1</MK2>', // 自动切刀立即切纸
+            '<BR>'    => "\n",           // 易联云支持标准换行符
+        ];
+
+        return str_replace(array_keys($map), array_values($map), $content);
+    }
+
+    /**
      * 添加打印机.
      * @param array $params
      * @return array
@@ -204,8 +237,10 @@ class YilianDriver extends BaseDriver
         if ($action !== 'oauth/oauth') {
             $data['access_token'] = $this->getAccessToken();
         }
-        // 合并请求参数
+
+        // 调用 BaseDriver 的 handleRequest 会自动触发 formatContent
         $data = array_merge($data, $params);
+        
         // 构建请求URL
         $url = $this->baseUrl . $action;
         // 发送请求
