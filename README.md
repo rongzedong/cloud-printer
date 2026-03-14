@@ -138,6 +138,51 @@ if ($result['success']) {
 
 > 所有驱动都实现 print 方法，参数为数组（如 ['content' => '内容', 'sn' => 'SN', 'copies' => 1]），返回统一格式。其他高级功能请查阅对应驱动扩展方法文档。
 
+### 2026-03 增加了基础标签的相互兼容
+
+>具体在每个driver里实现，下面是简易的例子
+>增加了 Support/ReceiptBuilder 用于整理要打印的条目，不仅能处理商品行（formatItems），以后还可以扩展 addHeader（头信息）、addFooter（尾信息）等方法。
+>    /**
+     * 构建商品列表（多列对齐排版内容）
+     * 
+     * @param array $items 商品数据数组。格式：[['title' => '商品名', 'price' => 10.5, 'num' => 2], ...]
+     * @param int $A 名称列的字节宽度 (58mm建议14, 80mm建议24)
+     * @param int $B 单价列的字节宽度 (建议6)
+     * @param int $C 数量列的字节宽度 (建议3)
+     * @param int $D 金额列的字节宽度 (建议6)
+     * @return string 返回排版后的字符串内容（带 <BR> 换行符）
+     */
+>可以在不同打印机上适配打印机宽度，这个可以后续与SN相关联，写入到 打印机信息表内。
+
+```php
+use Leapfu\CloudPrinter\Support\ReceiptBuilder;
+
+// 1. Identify hardware specs based on SN
+$sn = '111111111';
+$is80mm = true; // Logic to determine if it's an 80mm printer
+
+// 2. Define parameters dynamically
+// 58mm: 14, 6, 3, 6 (Total: 32 bytes)
+// 80mm: 24, 8, 6, 10 (Total: 51 bytes - adjust as needed for your paper)
+$A = $is80mm ? 24 : 14;
+$B = $is80mm ? 8  : 6;
+$C = $is80mm ? 6  : 3;
+$D = $is80mm ? 10 : 6;
+
+// 3. Assemble content
+$content = "<CB>云打印测试</CB><BR>";
+$content .= ReceiptBuilder::separator($A, $B, $C, $D);
+$content .= "名称" . str_repeat(' ', $A - 4) . " 单价  数量 金额<BR>"; // Dynamic header padding
+$content .= ReceiptBuilder::formatItems($items, $A, $B, $C, $D);
+$content .= ReceiptBuilder::separator($A, $B, $C, $D);
+$content .= "<QRCODE>https://www.spyun.net</QRCODE>";
+$content .= "<CUT>";
+
+// 4. Send to SDK (The driver's formatContent handles the tag translation)
+$sdk->driver()->print(['sn' => $sn, 'content' => $content]);
+
+```
+
 ---
 
 ## 框架集成用法
