@@ -67,6 +67,16 @@ abstract class BaseDriver implements PrinterInterface
     }
 
     /**
+     * 格式化打印内容（标签兼容性处理钩子）
+     * @param string $content 原始打印内容
+     * @return string 处理后的打印内容
+     */
+    protected function formatContent(string $content): string
+    {
+        return $content;
+    }
+
+    /**
      * 处理请求
      * @param string $url 请求URL
      * @param array $data 请求数据
@@ -75,6 +85,11 @@ abstract class BaseDriver implements PrinterInterface
      */
     protected function handleRequest(string $url, array $data, string $method = 'POST'): array
     {
+        // 在发送请求前，检查并格式化打印内容字段
+        if (isset($data['content'])) {
+            $data['content'] = $this->formatContent($data['content']);
+        }
+
         if (strtoupper($method) === 'GET') {
             return $this->httpClient->get($url, $data);
         } else {
