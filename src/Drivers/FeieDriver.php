@@ -40,6 +40,27 @@ class FeieDriver extends BaseDriver
     }
 
     /**
+     * 格式化打印内容（标签兼容性处理）
+     * 飞鹅云标签规范：https://help.feieyun.com
+     * @param string $content 原始打印内容
+     * @return string 处理后的打印内容
+     */
+    protected function formatContent(string $content): string
+    {
+        // 1. 二维码兼容：将 <QRCODE> 或易联云的 <QR2> 统一转换为飞鹅支持的 <QR>
+        // 匹配模式包含可能存在的属性参数，统一提取内容部分
+        $content = preg_replace('/<(QRCODE|QR2)[^>]*>(.*)<\/\1>/iU', '<QR>$2</QR>', $content);
+
+        // 2. 条形码兼容：将通用的 <BARCODE> 标签根据 type 属性转换为飞鹅专有的 BC128 标签
+        // 混合模式 (B)
+        $content = preg_replace('/<BARCODE type="B">(.*)<\/BARCODE>/iU', '<BC128_B>$1</BC128_B>', $content);
+        // 纯数字模式 (C)
+        $content = preg_replace('/<BARCODE type="C">(.*)<\/BARCODE>/iU', '<BC128_C>$1</BC128_C>', $content);
+
+        return $content;
+    }
+
+    /**
      * 批量添加设备
      * @param array $params 参数
      * @return array
