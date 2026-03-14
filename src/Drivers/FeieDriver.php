@@ -77,7 +77,14 @@ class FeieDriver extends BaseDriver
      */
     public function print(array $params): array
     {
-        return $this->request('Open_printMsg', $params);
+        $orderType = $params['order_type'] ?? 'new';
+        // 飞鹅依靠追加标签到内容末尾
+        if ($orderType === 'refund') {
+            $params['content'] .= '<AUDIO-REFUND>';
+        } elseif ($orderType === 'cancel') {
+            $params['content'] .= '<AUDIO-CANCEL>';
+        }
+        return $this->request('Open_printMsg', $params)
     }
 
     /**
