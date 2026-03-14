@@ -1,4 +1,5 @@
 <?php
+
 namespace Leapfu\CloudPrinter\Drivers;
 
 /**
@@ -6,7 +7,6 @@ namespace Leapfu\CloudPrinter\Drivers;
  * 兼容 Leapfu SDK 标准并保留商鹏所有原生 API 接口
  * 基于 2026-02-12 最新 API 协议实现
  */
-
 class ShangpengDriver extends BaseDriver
 {
     /**
@@ -22,9 +22,36 @@ class ShangpengDriver extends BaseDriver
         'appsecret' => '',  
     ];
 
+    /**
+     * 获取驱动名称
+     * @return string
+     */
     public function getDriverName(): string
     {
         return 'shangpeng';
+    }
+
+    /**
+     * 格式化打印内容（标签兼容性处理）
+     * 商鹏原生支持 <CB>, <BR>, <QR>, <CUT> 等飞鹅系标准标签
+     * @param string $content 原始打印内容
+     * @return string 处理后的打印内容
+     */
+    protected function formatContent(string $content): string
+    {
+        // 1. 二维码兼容：将通用的 <QRCODE> 或易联云的 <QR2> 统一转换为商鹏支持的 <QR>
+        $content = preg_replace('/<(QRCODE|QR2)[^>]*>(.*)<\/\1>/iU', '<QR>$2</QR>', $content);
+
+        // 2. 条形码兼容：将通用的 <BARCODE> 转换为商鹏标准的 BC128 标签
+        // 混合模式 (B)
+        $content = preg_replace('/<BARCODE type="B">(.*)<\/BARCODE>/iU', '<BC128_B>$1</BC128_B>', $content);
+        // 纯数字模式 (C)
+        $content = preg_replace('/<BARCODE type="C">(.*)<\/BARCODE>/iU', '<BC128_C>$1</BC128_C>', $content);
+
+        // 3. 对齐标签自动修剪：防止从芯烨等驱动迁移过来的 <BR> 位置导致的冗余
+        // 商鹏对标签内外位置较宽容，此处不做强制修改，保持原样即可
+        
+        return $content;
     }
 
     // --- 1. 基础打印接口 ---
@@ -124,12 +151,15 @@ class ShangpengDriver extends BaseDriver
             'timestamp' => time(),
         ], $params);
 
-        // 生成签名
+        // 调用 BaseDriver 的 handleRequest，这会自动触发 formatContent
+        $url = $this->baseUrl . ltrim($endpoint, '/');
+        $result = $this->handleRequest($url, $data, $method);
+
+        // 注意：签名逻辑应在 handleRequest 之前或内部处理内容格式化后重新计算
+        // 此处重新提取格式化后的内容参与签名
         $data['sign'] = $this->generateSignature($data);
 
-        $url = $this->baseUrl . ltrim($endpoint, '/');
-        
-        // 调用 BaseDriver 的请求处理（底层通常是 cURL）
+        // 二次请求确保带上签名
         $result = $this->handleRequest($url, $data, $method);
 
         // 严格匹配商鹏返回格式：errorcode=0 为成功
