@@ -42,6 +42,33 @@ class XpyunDriver extends BaseDriver
     }
 
     /**
+     * 格式化打印内容（标签兼容性处理）
+     * 芯烨云标签规范要求对齐标签如 <C></C> 内部必须包含 <BR> 才能实现换行对齐
+     * @param string $content 原始打印内容
+     * @return string 处理后的打印内容
+     */
+    protected function formatContent(string $content): string
+    {
+        // 1. 二维码兼容：将 <QR> 或简易 <QRCODE> 统一转换为芯烨带参数的标准格式
+        // 芯烨建议：s=6(大小) e=L(纠错) l=center(居中)
+        $content = preg_replace('/<(QR|QRCODE|QR2)[^>]*>(.*)<\/\1>/iU', '<QRCODE s=6 e=L l=center>$2</QRCODE>', $content);
+
+        // 2. 条形码兼容：将通用 <BARCODE> 转换为芯烨标准格式，并在前面强加 <BR> 以确保正常打印
+        $content = preg_replace('/<BARCODE.*>(.*)<\/BARCODE>/iU', '<BR><BARCODE t=CODE128 w=2 h=100 p=2>$1</BARCODE>', $content);
+
+        // 3. 对齐标签修正：芯烨要求换行符 <BR> 必须在闭合标签内，例如 <C>内容<BR></C>
+        // 将飞鹅等习惯的 </C><BR> 自动修正为 <BR></C>
+        $search = ['</C><BR>', '</CB><BR>', '</R><BR>', '</L><BR>', '</BOLD><BR>'];
+        $replace = ['<BR></C>', '<BR></CB>', '<BR></R>', '<BR></L>', '<BR></BOLD>'];
+        $content = str_replace($search, $replace, $content);
+        
+        // 4. 行间距标签兼容：将旧版 <RH n="x"> 转换为新版 <LH h="x">
+        $content = preg_replace('/<RH n="(\d)">(.*)<\/RH>/iU', '<LH h="$1">$2</LH>', $content);
+
+        return $content;
+    }
+
+    /**
      * 添加打印机到开发者账户（可批量） 【必接】.
      * @param array $params
      * @return array
@@ -178,6 +205,7 @@ class XpyunDriver extends BaseDriver
             'timestamp' => $timestamp,
             'sign'      => $this->generateSign($timestamp),
         ], $params);
+        
         // 构建请求URL
         $url = $this->baseUrl . $action;
         // 发送请求
