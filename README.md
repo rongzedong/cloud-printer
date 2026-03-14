@@ -243,15 +243,13 @@ $sdk->driver()->print(['sn' => $sn, 'content' => $content]);
 - 日志中避免输出账号、密钥等敏感数据。
 
 ---
+## 获取帮助与联系方式
 
-## 贡献与支持
-
+本项目fork自 [https://www.leapfu.com](https://www.leapfu.com) 感谢作者的贡献。 对本项目有任何建议和意见，建议提交到作者项目。
+本人所更改内容，未经验证，所以并没有提交到项目中。 如果是本项目所有的内容，可以在这里提交，否则请移步 [https://www.leapfu.com](https://www.leapfu.com)。
 - 欢迎提交 PR 或 Issue 参与共建！
 - 如需更多示例或遇到问题，欢迎提交 Issue。
 
----
-
-## 获取帮助与联系方式
 
 - 📧 <leapfu@hotmail.com>
 - 🐧 QQ 群：824070084（备注"云打印 SDK"）
