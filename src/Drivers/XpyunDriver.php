@@ -115,6 +115,16 @@ class XpyunDriver extends BaseDriver
      */
     public function print(array $params): array
     {
+        $orderType = $params['order_type'] ?? 'new';
+    
+        // 映射芯烨的 voice 参数：0取消, 2来单, 3退单
+        $voiceMap = [
+            'new'    => 2,
+            'cancel' => 0,
+            'refund' => 3
+        ];
+    
+        $params['voice'] = $voiceMap[$orderType] ?? 2;
         return $this->request('print', $params);
     }
 
