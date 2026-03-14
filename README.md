@@ -142,7 +142,8 @@ if ($result['success']) {
 
 >具体在每个driver里实现，下面是简易的例子
 >增加了 Support/ReceiptBuilder 用于整理要打印的条目，不仅能处理商品行（formatItems），以后还可以扩展 addHeader（头信息）、addFooter（尾信息）等方法。
->    /**
+```
+    /**
      * 构建商品列表（多列对齐排版内容）
      * 
      * @param array $items 商品数据数组。格式：[['title' => '商品名', 'price' => 10.5, 'num' => 2], ...]
@@ -152,6 +153,7 @@ if ($result['success']) {
      * @param int $D 金额列的字节宽度 (建议6)
      * @return string 返回排版后的字符串内容（带 <BR> 换行符）
      */
+```
 >可以在不同打印机上适配打印机宽度，这个可以后续与SN相关联，写入到 打印机信息表内。
 
 ```php
